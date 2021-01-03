@@ -14,7 +14,7 @@ import UIKit
 }
 
 // Can't define CustomizableActionSheetItem as struct because Obj-C can't see struct definition.
-public class CustomizableActionSheetItem: NSObject {
+public struct CustomizableActionSheetItem {
 
   // MARK: - Public properties
   public var type: CustomizableActionSheetItemType = .button
@@ -34,10 +34,8 @@ public class CustomizableActionSheetItem: NSObject {
   // MARK: - Private properties
   fileprivate var element: UIView? = nil
 
-  public convenience init(type: CustomizableActionSheetItemType,
+  public init(type: CustomizableActionSheetItemType,
                           height: CGFloat = CustomizableActionSheetItem.kDefaultHeight) {
-    self.init()
-
     self.type = type
     self.height = height
   }
@@ -100,7 +98,7 @@ public class CustomizableActionSheet: NSObject {
 
   public var defaultCornerRadius: CGFloat = 4
   public var position: CustomizableActionSheetPosition = .bottom
-  public func showInView(_ targetView: UIView, items: [CustomizableActionSheetItem], closeBlock: (() -> Void)? = nil) {
+  public func showInView(_ targetView: UIView, items: inout [CustomizableActionSheetItem], closeBlock: (() -> Void)? = nil) {
     // Save instance to reaction until closing this sheet
     CustomizableActionSheet.actionSheets.append(self)
 
@@ -137,21 +135,21 @@ public class CustomizableActionSheet: NSObject {
       availableHeight = availableHeight - item.height - CustomizableActionSheet.kItemInterval
     }
 
-    for item in items {
+    for index in 0..<items.count {
       // Apply height of items
       if availableHeight < 0 {
-        let reduceNum = min(item.height, -availableHeight)
-        item.height -= reduceNum
+        let reduceNum = min(items[index].height, -availableHeight)
+        items[index].height -= reduceNum
         availableHeight += reduceNum
 
-        if item.height <= 0 {
+        if items[index].height <= 0 {
           availableHeight += CustomizableActionSheet.kItemInterval
           continue
         }
       }
 
       // Add views
-      switch (item.type) {
+      switch (items[index].type) {
       case .button:
         let button = UIButton()
         button.layer.cornerRadius = defaultCornerRadius
@@ -159,32 +157,32 @@ public class CustomizableActionSheet: NSObject {
           x: CustomizableActionSheet.kMarginSide,
           y: currentPosition,
           width: targetBounds.width - (CustomizableActionSheet.kMarginSide * 2),
-          height: item.height)
-        button.setTitle(item.label, for: UIControl.State())
-        button.backgroundColor = item.backgroundColor
-        button.setTitleColor(item.textColor, for: UIControl.State())
-        if let font = item.font {
+          height: items[index].height)
+        button.setTitle(items[index].label, for: UIControl.State())
+        button.backgroundColor = items[index].backgroundColor
+        button.setTitleColor(items[index].textColor, for: UIControl.State())
+        if let font = items[index].font {
           button.titleLabel?.font = font
         }
-        if let _ = item.selectAction {
+        if let _ = items[index].selectAction {
           button.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(CustomizableActionSheet.buttonWasTapped(_:))))
         }
-        item.element = button
+        items[index].element = button
         self.itemContainerView.addSubview(button)
-        currentPosition = currentPosition + item.height + CustomizableActionSheet.kItemInterval
+        currentPosition = currentPosition + items[index].height + CustomizableActionSheet.kItemInterval
       case .view:
-        if let view = item.view {
+        if let view = items[index].view {
           let containerView = ActionSheetItemView(frame: CGRect(
             x: CustomizableActionSheet.kMarginSide,
             y: currentPosition,
             width: targetBounds.width - (CustomizableActionSheet.kMarginSide * 2),
-            height: item.height))
+            height: items[index].height))
           containerView.layer.cornerRadius = defaultCornerRadius
           containerView.addSubview(view)
           view.frame = view.bounds
           self.itemContainerView.addSubview(containerView)
-          item.element = view
-          currentPosition = currentPosition + item.height + CustomizableActionSheet.kItemInterval
+            items[index].element = view
+          currentPosition = currentPosition + items[index].height + CustomizableActionSheet.kItemInterval
         }
       }
     }
